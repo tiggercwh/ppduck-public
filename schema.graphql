@@ -1,0 +1,130 @@
+type User @model @auth(rules: [{ allow: public }])
+  {
+  id:ID!
+  type: String
+  email: String! @index(name: "byEmail",queryField: "userByEmail")
+  name: String!
+  gender: String
+  image: String
+  interest: [String]
+  expoPushToken: String
+  joinedGeens: [GeenParticipant] @hasMany(indexName: "byUser", fields: ["id"])
+  likedGeens: [likedGeen] @hasMany(indexName: "byUser", fields: ["id"])
+  joinedChats: [ChatRoomParticipant] @hasMany(indexName: "byUser", fields: ["id"])
+  createdAt: AWSDateTime!  
+}
+
+type ChatRoomParticipant @model @auth(rules: [{ allow: public }])
+{
+  id:ID!
+  chatRoomID:ID! @index(name:"byChatRoom", sortKeyFields:["userID"])
+  userID:ID! @index(name:"byUser", sortKeyFields:["chatRoomID"])
+  lastEnterTime:String
+  chatRoom: ChatRoom! @hasOne(fields: ["chatRoomID"])
+  user: User! @hasOne(fields: ["userID"])
+  createdAt: AWSDateTime!
+}
+
+type ChatRoom @model @auth(rules: [{ allow: public }])
+{
+  id:ID!
+  name: String!
+  image:String
+  sharedImage:[String]
+  chat:[Chat]! @hasMany(indexName: "byChatRoom", fields:["id"])
+  user:[ChatRoomParticipant]! @hasMany(indexName: "byChatRoom", fields: ["id"])
+  type:String!
+  createdAt: AWSDateTime!
+}
+
+type Chat @model @auth(rules: [{ allow: public }])
+{
+  id:ID!
+  chatRoomID: ID! @index(name:"byChatRoom", sortKeyFields:["createdAt"])
+  ChatRoom: ChatRoom @belongsTo(fields: ["chatRoomID"])
+  image: String
+  text: String!
+  sender: String!
+  senderID: ID!
+  reply: String!
+  createdAt: AWSDateTime! @index(name:"byDate")
+  replyID: ID
+  replyText: String
+  replyName: String
+}
+
+type GeenParticipant
+  @model @auth(rules: [{ allow: public }])
+  {
+  id: ID!
+  geenID: ID! @index(name: "byGeen", sortKeyFields: ["userID"])
+  userID: ID! @index(name: "byUser", sortKeyFields: ["geenID"])
+  attendance: String
+  geen: Geen! @hasOne(fields: ["geenID"])
+  user: User! @hasOne(fields: ["userID"])
+  createdAt: AWSDateTime!
+}
+
+type likedGeen @model @auth(rules: [{ allow: public }])
+  {
+    id:ID!
+    geenID: ID! @index(name: "byGeen", sortKeyFields: ["userID"])
+    userID: ID! @index(name: "byUser", sortKeyFields: ["geenID"])
+    geen: Geen! @hasOne(fields: ["geenID"])
+    user: User! @hasOne(fields: ["userID"])
+    createdAt: AWSDateTime!
+  }
+
+type Geen @model @auth(rules: [{ allow: public }])
+  {
+  id:ID!
+  hostID:ID!
+  chatRoomID: ID
+  chatroom: ChatRoom @hasOne(fields: ["chatRoomID"])
+  geenType: [String]
+  geenName: String!
+  geenTime: AWSDateTime!
+  geenLocation: String!
+  geenDescription: String!
+  geenPhoto: [String]!
+  geenHoster: User @hasOne(fields: ["hostID"])
+  geenTag:[String]
+  participants: [GeenParticipant] @hasMany(indexName: "byGeen", fields: ["id"])
+  likedUsers: [likedGeen] @hasMany(indexName: "byGeen", fields: ["id"])
+  maximumParti: Int
+  longitude:Float
+  latitude:Float
+  isFeatured: String
+  createdAt: AWSDateTime! @index(name:"byDate")
+}
+
+type Friends @model @auth(rules: [{ allow: public }])
+  {
+  id:ID!
+  userID: ID! @index(name: "byUser", sortKeyFields: ["createdAt"])
+  friendID: ID!
+  friends: User @hasOne (fields: ["friendID"])
+  createdAt:AWSDateTime!
+}
+
+
+type Report @model @auth(rules: [{ allow: public }])
+  {
+  id:ID!
+  reportUser:ID
+  reportGeen:ID
+  reportCategory: String
+  reportDetails: String
+  createdAt:AWSDateTime!
+}
+
+type ModelChatConnection {
+    items: [Chat]
+    nextToken: String
+    scannedCount: Int
+    count: Int
+}
+
+type Subscription {
+  onCreateChatByChatRoom(chatRoomID: ID!): Chat @aws_subscribe(mutations: ["createChat"])
+}
